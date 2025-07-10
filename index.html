@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sổ Tay Kỷ Niệm</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Quicksand', sans-serif;
+            /* Dải màu nền lãng mạn */
+            background-color: #fde2e4;
+            background-image: linear-gradient(135deg, #fde2e4 0%, #e6e9f0 100%);
+        }
+        /* Style cho scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c7a9b1; /* Màu hồng đất */
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b38b99;
+        }
+        /* Animation cho modal */
+        .modal-enter {
+            animation: fadeIn 0.3s ease-out;
+        }
+        .modal-leave {
+            animation: fadeOut 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeOut {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0; transform: scale(0.95); }
+        }
+        /* Hiển thị nút khi hover */
+        .photo-actions {
+            opacity: 0;
+            transition: opacity 0.2s ease-in-out;
+        }
+        .group:hover .photo-actions {
+            opacity: 1;
+        }
+        /* Hiệu ứng kính mờ cho modal */
+        .glassmorphism {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="text-slate-700">
+
+    <!-- Main App View -->
+    <div id="app" class="max-w-5xl mx-auto p-4 md:p-6">
+        <header class="text-center mb-10">
+            <h1 class="text-3xl md:text-4xl font-bold text-rose-800">Our Story</h1>
+            <p class="text-slate-500 mt-2">Nơi chúng ta cùng nhau gìn giữ những khoảnh khắc</p>
+        </header>
+
+        <main>
+            <section id="albums-section">
+                 <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800">Tất Cả Album</h2>
+                    <button id="add-album-btn" class="bg-rose-500 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-rose-600 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Tạo Album Mới
+                    </button>
+                </div>
+                <div id="albums-list" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+                    <!-- Các album sẽ được thêm vào đây bằng JS -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Album Modal (cho Thêm/Sửa) -->
+    <div id="album-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden modal-enter">
+        <div class="glassmorphism rounded-lg shadow-xl w-full max-w-md p-6">
+            <h3 id="album-modal-title" class="text-xl font-bold mb-4 text-rose-800">Tạo Album Mới</h3>
+            <input id="album-name" type="text" placeholder="Nhập tên kỷ niệm..." class="w-full p-3 bg-white/80 border border-rose-200 rounded-lg placeholder-slate-400">
+            <div class="mt-6 flex justify-end space-x-3">
+                <button id="cancel-album-btn" class="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Hủy</button>
+                <button id="save-album-btn" class="px-4 py-2 bg-rose-500 text-white rounded-lg hover:bg-rose-600">Lưu</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Album Detail View -->
+    <div id="album-detail-view" class="hidden fixed inset-0 overflow-y-auto">
+        <div class="max-w-6xl mx-auto p-4 md:p-6">
+            <button id="back-to-albums" class="mb-6 text-rose-600 font-semibold hover:text-rose-800 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Quay lại
+            </button>
+            <div class="flex flex-col md:flex-row justify-between md:items-center mb-6">
+                <h2 id="album-detail-title" class="text-3xl font-bold text-slate-800 mb-4 md:mb-0"></h2>
+                <label for="upload-photo-input" class="w-full md:w-auto bg-rose-500 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:bg-rose-600 transition-colors cursor-pointer text-center">
+                    <i class="fas fa-upload mr-2"></i>Thêm ảnh
+                </label>
+                <input type="file" id="upload-photo-input" class="hidden" multiple accept="image/*">
+            </div>
+            <div id="album-photos-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <!-- Ảnh trong album sẽ được thêm vào đây -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 hidden modal-enter">
+        <div class="glassmorphism rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
+            <h3 id="confirm-title" class="text-lg font-bold mb-2 text-rose-800">Bạn chắc chắn chứ?</h3>
+            <p id="confirm-message" class="text-slate-600 mb-6">Hành động này không thể hoàn tác.</p>
+            <div class="flex justify-center space-x-4">
+                <button id="confirm-cancel-btn" class="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300">Hủy</button>
+                <button id="confirm-ok-btn" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700">Xóa</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DATABASE GIẢ LẬP ---
+        let albums = [
+            { id: 1, name: "Chuyến đi Đà Lạt 2025", cover: "https://images.unsplash.com/photo-1573102652238-C01413692837?q=80&w=800&auto=format&fit=crop", photos: ["https://images.unsplash.com/photo-1573102652238-C01413692837?q=80&w=800&auto=format&fit=crop", "https://images.unsplash.com/photo-1558001496-5ac73402419a?q=80&w=600&auto=format&fit=crop", "https://images.unsplash.com/photo-1593941707882-633633f06a9b?q=80&w=600&auto=format&fit=crop"] },
+            { id: 2, name: "Tết Đầu Tiên Cùng Nhau", cover: "https://images.unsplash.com/photo-1642809247409-9aa311b71657?q=80&w=800&auto=format&fit=crop", photos: ["https://images.unsplash.com/photo-1642809247409-9aa311b71657?q=80&w=800&auto=format&fit=crop"] },
+            { id: 3, name: "Sinh nhật Anh", cover: "https://images.unsplash.com/photo-1551024709-8f2378a012de?q=80&w=800&auto=format&fit=crop", photos: [] }
+        ];
+        
+        let currentAlbumId = null;
+        let editingAlbumId = null;
+        let confirmationCallback = null;
+
+        // --- DOM ELEMENTS ---
+        const appView = document.getElementById('app');
+        const albumsList = document.getElementById('albums-list');
+        const albumModal = document.getElementById('album-modal');
+        const albumDetailView = document.getElementById('album-detail-view');
+        const confirmModal = document.getElementById('confirm-modal');
+
+        // --- RENDER FUNCTIONS ---
+        function renderAlbums() {
+            albumsList.innerHTML = '';
+            if (albums.length === 0) {
+                albumsList.innerHTML = `<p class="col-span-full text-center text-slate-500 mt-8">Chưa có kỷ niệm nào. Hãy tạo một cái!</p>`;
+                return;
+            }
+            albums.forEach(album => {
+                const albumElement = document.createElement('div');
+                albumElement.className = 'group relative';
+                albumElement.innerHTML = `
+                    <div class="aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden relative shadow-lg cursor-pointer" onclick="showAlbumDetail(${album.id})">
+                        <img src="${album.cover}" alt="${album.name}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <p class="absolute bottom-0 left-0 p-3 text-white font-bold text-lg">${album.name}</p>
+                    </div>
+                    <div class="photo-actions absolute top-2 right-2 flex space-x-2">
+                        <button onclick="openEditAlbumModal(${album.id})" class="w-8 h-8 bg-white/80 rounded-full flex items-center justify-center text-slate-700 hover:bg-white hover:text-black transition-colors"><i class="fas fa-pen-to-square"></i></button>
+                        <button onclick="confirmDeleteAlbum(${album.id})" class="w-8 h-8 bg-white/80 rounded-full flex items-center justify-center text-red-500 hover:bg-white hover:text-red-600 transition-colors"><i class="fas fa-trash-can"></i></button>
+                    </div>
+                `;
+                albumsList.appendChild(albumElement);
+            });
+        }
+        
+        function renderAlbumPhotos(albumId) {
+            const album = albums.find(a => a.id === albumId);
+            const grid = document.getElementById('album-photos-grid');
+            grid.innerHTML = '';
+            if (!album) return;
+
+            album.photos.forEach((photoUrl, index) => {
+                const photoEl = document.createElement('div');
+                photoEl.className = 'group relative aspect-w-1 aspect-h-1 bg-gray-200 rounded-lg overflow-hidden shadow';
+                photoEl.innerHTML = `
+                    <img src="${photoUrl}" class="w-full h-full object-cover">
+                    <div class="absolute inset-0 bg-black/50 photo-actions flex items-center justify-center space-x-3">
+                        <button onclick="setAsCover(${album.id}, ${index})" title="Đặt làm ảnh bìa" class="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center text-blue-500 hover:bg-white hover:text-blue-600 transition-colors"><i class="fas fa-image"></i></button>
+                        <button onclick="confirmDeletePhoto(${album.id}, ${index})" title="Xóa ảnh" class="w-10 h-10 bg-white/80 rounded-full flex items-center justify-center text-red-500 hover:bg-white hover:text-red-600 transition-colors"><i class="fas fa-trash-can"></i></button>
+                    </div>
+                `;
+                grid.appendChild(photoEl);
+            });
+            
+            if (album.photos.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-slate-500 py-16">Album này chưa có ảnh nào. Hãy là người đầu tiên tải lên!</p>`;
+            }
+        }
+
+        // --- VIEW & MODAL LOGIC ---
+        function showAlbumDetail(albumId) {
+            currentAlbumId = albumId;
+            const album = albums.find(a => a.id === albumId);
+            if (!album) return;
+            
+            document.getElementById('album-detail-title').textContent = album.name;
+            renderAlbumPhotos(albumId);
+            
+            appView.classList.add('hidden');
+            albumDetailView.classList.remove('hidden');
+        }
+        
+        function showMainView() {
+            currentAlbumId = null;
+            appView.classList.remove('hidden');
+            albumDetailView.classList.add('hidden');
+            renderAlbums();
+        }
+
+        function openAddAlbumModal() {
+            editingAlbumId = null;
+            document.getElementById('album-modal-title').textContent = 'Tạo Kỷ Niệm Mới';
+            document.getElementById('album-name').value = '';
+            albumModal.classList.remove('hidden');
+        }
+
+        function openEditAlbumModal(albumId) {
+            editingAlbumId = albumId;
+            const album = albums.find(a => a.id === albumId);
+            if (!album) return;
+            document.getElementById('album-modal-title').textContent = 'Sửa Tên Kỷ Niệm';
+            document.getElementById('album-name').value = album.name;
+            albumModal.classList.remove('hidden');
+        }
+
+        function closeAlbumModal() {
+            albumModal.classList.add('hidden');
+        }
+
+        function showConfirmModal(title, message, onConfirm) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            confirmationCallback = onConfirm;
+            confirmModal.classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            confirmModal.classList.add('hidden');
+            confirmationCallback = null;
+        }
+
+        // --- CRUD OPERATIONS ---
+        function saveAlbum() {
+            const nameInput = document.getElementById('album-name');
+            const name = nameInput.value.trim();
+            if (!name) return;
+
+            if (editingAlbumId) { // Sửa album
+                const album = albums.find(a => a.id === editingAlbumId);
+                if (album) album.name = name;
+            } else { // Thêm album mới
+                const newAlbum = {
+                    id: Date.now(),
+                    name: name,
+                    cover: `https://placehold.co/800x800/e9a8b5/ffffff?text=${encodeURIComponent(name.charAt(0))}`,
+                    photos: []
+                };
+                albums.unshift(newAlbum);
+            }
+            renderAlbums();
+            closeAlbumModal();
+        }
+        
+        function confirmDeleteAlbum(albumId) {
+            const album = albums.find(a => a.id === albumId);
+            if (!album) return;
+            showConfirmModal('Xóa Kỷ Niệm?', `Bạn có chắc muốn xóa kỷ niệm "${album.name}"?`, () => {
+                albums = albums.filter(a => a.id !== albumId);
+                renderAlbums();
+                closeConfirmModal();
+            });
+        }
+
+        function uploadPhotos(event) {
+            if (!currentAlbumId) return;
+            const album = albums.find(a => a.id === currentAlbumId);
+            if (!album) return;
+
+            const files = event.target.files;
+            if (files.length > 0) {
+                for(let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        album.photos.push(e.target.result);
+                        if (album.photos.length === 1 || album.cover.startsWith('https://placehold.co')) {
+                            album.cover = e.target.result;
+                        }
+                        renderAlbumPhotos(currentAlbumId);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+
+        function confirmDeletePhoto(albumId, photoIndex) {
+            showConfirmModal('Xóa Ảnh?', 'Bạn có chắc muốn xóa ảnh này?', () => {
+                const album = albums.find(a => a.id === albumId);
+                if (album && album.photos[photoIndex]) {
+                    const deletedPhotoUrl = album.photos[photoIndex];
+                    album.photos.splice(photoIndex, 1);
+                    if (album.cover === deletedPhotoUrl) {
+                        album.cover = album.photos.length > 0 ? album.photos[0] : `https://placehold.co/800x800/e9a8b5/ffffff?text=${encodeURIComponent(album.name.charAt(0))}`;
+                    }
+                    renderAlbumPhotos(albumId);
+                }
+                closeConfirmModal();
+            });
+        }
+
+        function setAsCover(albumId, photoIndex) {
+            const album = albums.find(a => a.id === albumId);
+            if (album && album.photos[photoIndex]) {
+                album.cover = album.photos[photoIndex];
+                alert('Đã đặt làm ảnh bìa!');
+            }
+        }
+
+        // --- EVENT LISTENERS ---
+        document.getElementById('add-album-btn').addEventListener('click', openAddAlbumModal);
+        document.getElementById('cancel-album-btn').addEventListener('click', closeAlbumModal);
+        document.getElementById('save-album-btn').addEventListener('click', saveAlbum);
+        document.getElementById('back-to-albums').addEventListener('click', showMainView);
+        document.getElementById('upload-photo-input').addEventListener('change', uploadPhotos);
+        document.getElementById('confirm-cancel-btn').addEventListener('click', closeConfirmModal);
+        document.getElementById('confirm-ok-btn').addEventListener('click', () => {
+            if (confirmationCallback) confirmationCallback();
+        });
+
+        // --- INITIAL RENDER ---
+        window.onload = () => {
+            renderAlbums();
+        };
+
+    </script>
+</body>
+</html>
